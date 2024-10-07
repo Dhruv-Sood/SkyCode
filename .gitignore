@@ -29,3 +29,5 @@ Thumbs.db
 # OS generated files
 *.bak
 *.tmp
+
+output/
