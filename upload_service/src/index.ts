@@ -6,6 +6,11 @@ import { uploadFile } from "./utils";
 import path from "path";
 import fs from "fs";
 
+// redis setup
+import { createClient } from "redis";
+const publisher = createClient();
+publisher.connect();
+
 const app = express();
 app.use(express.json());
 
@@ -39,6 +44,8 @@ app.post("/deploy", async (req: Request, res: Response) => {
 
       await uploadFile(s3Key, file);
     });
+
+    publisher.lPush("build-queue", id);
 
 
     res.json({
