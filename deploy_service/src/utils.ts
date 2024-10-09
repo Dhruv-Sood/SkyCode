@@ -68,8 +68,60 @@ export function buildProject(id: string) {
       console.log("stderr: " + data);
     });
 
-    child.on("finish", function (code) {
+    child.on("exit", function (code) {
       resolve("");
     });
   });
 }
+export async function copyFinalDist(id: string) {
+  const folderPath = path.join(__dirname, `output/${id}/dist`);
+
+  try {
+    const allFiles = getAllFiles(folderPath);
+
+    // Use for...of loop to handle async/await properly
+    for (const file of allFiles) {
+      const relativeFilePath =
+        `dist/${id}/` + file.slice(folderPath.length + 1);
+      await uploadFile(relativeFilePath, file); // Await here
+    }
+  } catch (error) {
+    console.error("Error copying files:", error);
+  }
+}
+
+const getAllFiles = (folderPath: string): string[] => {
+  let response: string[] = [];
+
+  try {
+    const allFilesAndFolders = fs.readdirSync(folderPath);
+    allFilesAndFolders.forEach((file) => {
+      const fullFilePath = path.join(folderPath, file);
+      if (fs.statSync(fullFilePath).isDirectory()) {
+        response = response.concat(getAllFiles(fullFilePath)); // Recursively get all files
+      } else {
+        response.push(fullFilePath); // Add file path to response
+      }
+    });
+  } catch (error) {
+    console.error("Error reading folder contents:", error);
+  }
+
+  return response;
+};
+
+const uploadFile = async (fileName: string, localFilePath: string) => {
+  try {
+    const fileContent = fs.readFileSync(localFilePath);
+    const response = await s3
+      .upload({
+        Body: fileContent,
+        Bucket: "cloudcode123", // Use your actual bucket name
+        Key: fileName,
+      })
+      .promise();
+    console.log(`File uploaded successfully: ${fileName}`, response);
+  } catch (error) {
+    console.error("Error uploading file:", error);
+  }
+};
