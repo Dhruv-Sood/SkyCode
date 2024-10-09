@@ -1,5 +1,5 @@
 import { createClient, commandOptions } from "redis";
-import { downloadFromS3 } from "./utils";
+import { downloadFromS3, buildProject } from "./utils";
 
 const subscriber = createClient();
 subscriber.connect()
@@ -14,7 +14,13 @@ async function main() {
         console.log(res);
 
         // @ts-ignore
-        downloadFromS3(`output/${res.element}`);
+        await downloadFromS3(`output/${res.element}`);
+        console.log("Downloaded");
+
+        // @ts-ignore
+        await buildProject(res.element);
+        console.log("Build Success!!");
+        
         
     }
 }
