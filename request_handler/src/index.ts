@@ -1,9 +1,10 @@
 import express from "express";
 import { S3 } from "aws-sdk";
 import dotenv from "dotenv";
-dotenv.config();
 
+dotenv.config();
 const app = express();
+
 const s3 = new S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -13,19 +14,19 @@ const PORT = process.env.PORT || 3001;
 
 app.get("/*", async (req, res) => {
   try {
-    // Extract the host and remove the development domain suffix
     const host = req.hostname;
     let id;
 
-    // Handle different development domain scenarios
-    if (host.includes("nip.io")) {
-      // Format: abcde.127.0.0.1.nip.io
+    if (host.includes("onrender.com")) {
+      // For render URLs like https://4aa6d.skycode-2.onrender.com
+      // We want to extract '4aa6d' from the subdomain
+      const subdomains = host.split(".");
+      id = subdomains[0]; // This will get '4aa6d'
+    } else if (host.includes("nip.io")) {
       id = host.split(".")[0];
     } else if (host.includes("localtest.me")) {
-      // Format: abcde.localtest.me
       id = host.split(".")[0];
     } else {
-      // Handle your original domain format or other cases
       id = host.split(".")[0];
     }
 
@@ -44,8 +45,7 @@ app.get("/*", async (req, res) => {
       })
       .promise();
 
-    // Enhanced MIME type handling
-    const mimeTypes = {
+    const mimeTypes: Record<string, string> = {
       ".html": "text/html",
       ".css": "text/css",
       ".js": "application/javascript",
@@ -57,12 +57,11 @@ app.get("/*", async (req, res) => {
     };
 
     const ext = filePath.match(/\.[^.]*$/)?.[0] || "";
-    // @ts-ignore
     const contentType = mimeTypes[ext] || "application/octet-stream";
 
     res.set("Content-Type", contentType);
     res.send(contents.Body);
-  } catch (error:any) {
+  } catch (error: any) {
     console.error("Error serving file:", error);
     res.status(error.statusCode || 500).send(error.message);
   }
@@ -73,4 +72,5 @@ app.listen(PORT, () => {
   console.log(`You can access your deployments using the following formats:`);
   console.log(`- http://[project-id].127.0.0.1.nip.io:${PORT}`);
   console.log(`- http://[project-id].localtest.me:${PORT}`);
+  console.log(`- https://[project-id].your-app-name.onrender.com`);
 });
