@@ -11,6 +11,9 @@ import { createClient } from "redis";
 const publisher = createClient();
 publisher.connect();
 
+const subscriber = createClient();
+subscriber.connect();
+
 const app = express();
 app.use(express.json());
 
@@ -46,7 +49,7 @@ app.post("/deploy", async (req: Request, res: Response) => {
     });
 
     publisher.lPush("build-queue", id);
-
+    publisher.hSet("status", id, "uploaded"); 
 
     res.json({
       id,
@@ -56,6 +59,14 @@ app.post("/deploy", async (req: Request, res: Response) => {
     console.error("Deployment error:", error);
     res.status(500).json({ error: "Deployment failed" });
   }
+});
+
+app.get("/status", async (req, res) => {
+  const id = req.query.id;
+  const response = await subscriber.hGet("status", id as string);
+  res.json({
+    status: response,
+  });
 });
 
 app.listen(3000, () => {
